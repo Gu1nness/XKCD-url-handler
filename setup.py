@@ -10,13 +10,15 @@ Utility to install XKCD Url Handler.
 
 
 from os.path import dirname, abspath, isdir, isfile
-from os import makedirs
+from os import makedirs, remove
 from sys import stdout
 import shutil
+from subprocess import call
 import argparse
 from xdg import BaseDirectory
 
 FILE = "xkcd_handler.py"
+TERMINATOR_CONFIG = BaseDirectory.xdg_config_home + "/" + "terminator/config"
 INSTALL_PATH = BaseDirectory.xdg_config_home + "/" + "terminator/plugins/"
 SCRIPT_PATH = dirname(abspath(__file__)) + "/" +  FILE
 
@@ -55,25 +57,62 @@ def check_path(create=False):
         else:
             return False
 
+def modify_conf_file(remove_line=False):
+    """ Modifies the configuration file of Terminator."""
+    if not remove_line:
+        command = ["sed " + "'s/\\( *enabled_plugins.*\\)/\\1, XKCDUrlHandler/' "\
+            + "-i " + TERMINATOR_CONFIG]
+        if (call(["grep XKCDUrlHandler %s > /dev/null" % TERMINATOR_CONFIG],
+            shell=True)) == 0:
+            return True
+    else:
+        command = ["sed " + "'s/, XKCDUrlHandler//' " + "-i " + TERMINATOR_CONFIG]
+    stdout.write("Modifying configuration file...")
+    stdout.flush()
+    if call(command, shell=True) == 0:
+        stdout.write("\rModifying configuration file... Succeded\n")
+        stdout.flush()
+        return True
+    else:
+        stdout.write("\rModifying configuration file... Failed\n")
+        stdout.flush()
+        return False
+
 
 def install():
     """ Install the files in the good directory."""
     if check_path(create=True):
-        stdout.write("Copying file to %s...\n" % INSTALL_PATH)
+        stdout.write("Copying file to %s..." % INSTALL_PATH)
         stdout.flush()
         try:
             shutil.copy2(SCRIPT_PATH, INSTALL_PATH)
             stdout.write("\rCopying file to %s... Ok!\n" % INSTALL_PATH)
-        except IOError as error:
+        except IOError:
             stdout.write("\rCopying file to %s... Failed!\n" % INSTALL_PATH)
             stdout.flush()
             stdout.write("Couldn't copy file...\n")
+
+def uninstall():
+    """ Uninstall the files """
+    uninstall_str = "Removing script from %s..." % INSTALL_PATH
+    stdout.write(uninstall_str)
+    if isfile(INSTALL_PATH + FILE):
+        try:
+            remove(INSTALL_PATH + FILE)
+            stdout.write("\r" + uninstall_str + " Ok!\n")
+            stdout.flush()
+        except OSError:
+            stdout.write("\r" + uninstall_str + "Failed!\n")
+            stdout.flush()
+    else:
+        stdout.write("\r" + uninstall_str + "File unexistant!\n")
+        stdout.flush()
 
 
 if __name__ == "__main__":
     PARSER = argparse.ArgumentParser("Installation utility for XKCD "
                                      "Url Handler")
-    GROUP = PARSER.add_mutually_exclusive_group(required=True)
+    GROUP = PARSER.add_mutually_exclusive_group()
     GROUP.add_argument(
         "--check", "-c",
         help="Checks if the path exists",
@@ -81,12 +120,30 @@ if __name__ == "__main__":
     )
     GROUP.add_argument(
         "--install", "-i",
-        help="Install the script",
+        help="Install the script, and modifies the configuration file.",
         action="store_true"
+    )
+    GROUP.add_argument(
+        "--uninstall", "-u",
+        help="Uninstall the script",
+        action="store_true"
+    )
+    PARSER.add_argument(
+        "--modify-conf", "-m", choices=["remove", "add"],
+        help="Modifiy the configuration file",
+        action="store",
     )
 
     ARGS = PARSER.parse_args()
     if  ARGS.check:
         check_path()
     elif ARGS.install:
+        install()
+        modify_conf_file()
+    elif ARGS.modify_conf:
+        modify_conf_file(remove_line=("remove"== ARGS.modify_conf))
+    elif ARGS.uninstall:
+        modify_conf_file(remove_line=True)
+        uninstall()
+    else:
         install()
