@@ -3,7 +3,7 @@
 """
 XKCD Url handler for Terminator by Rémi Oudin <oudin@crans.org>
 Terminator is a Terminal written by Chris Jones <cmsj@tenshu.net>
-GPLv2 only
+GPLv3
 """
 import re
 import terminatorlib.plugin as plugin
