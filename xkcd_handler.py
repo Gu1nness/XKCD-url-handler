@@ -18,7 +18,7 @@ class XKCDUrlHandler(plugin.URLHandler):
     """
     capabilities = ['url_handler']
     handler_name = 'xkcd_url'
-    match = '\\bxkcd:?//?[0-9]+\\b'
+    match = '\\bxkcd(:/)?/[0-9]+\\b'
     nameopen = "Open XKCD Comic"
     namecopy = "Copy XKCD Comic URL"
 
